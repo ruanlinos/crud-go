@@ -58,3 +58,45 @@ func CreateUser(rw http.ResponseWriter, r *http.Request) {
 	rw.WriteHeader(http.StatusCreated)
 	rw.Write([]byte(fmt.Sprintf("User successfully created with id: %d", userID)))
 }
+
+//ListAllUsers return all users in the database
+func ListAllUsers(rw http.ResponseWriter, r *http.Request) {
+	db, err := db.Connect()
+	if err != nil {
+		rw.Write([]byte("Error on connect to the db."))
+		return
+	}
+	defer db.Close()
+
+	rows, err := db.Query("select * from users")
+
+	if err != nil {
+		rw.Write([]byte("Error on get the users!"))
+		return
+	}
+	defer rows.Close()
+
+	var users []user
+
+	for rows.Next() {
+		var user user
+
+		if err := rows.Scan(&user.ID, &user.Name, &user.Email); err != nil {
+			rw.Write([]byte("Error on scan the list of users"))
+			return
+		}
+
+		users = append(users, user)
+	}
+	rw.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(rw).Encode(users); err != nil {
+		rw.Write([]byte("Error on encode slice."))
+		return
+	}
+
+}
+
+//ListOneUser return a user based on your id.
+func ListOneUser(rw http.ResponseWriter, r *http.Request) {
+
+}

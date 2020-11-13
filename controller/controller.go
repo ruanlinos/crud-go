@@ -6,6 +6,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strconv"
+
+	"github.com/gorilla/mux"
 )
 
 type user struct {
@@ -98,5 +101,33 @@ func ListAllUsers(rw http.ResponseWriter, r *http.Request) {
 
 //ListOneUser return a user based on your id.
 func ListOneUser(rw http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
 
+	ID, err := strconv.ParseUint(params["id"], 10, 32)
+	if err != nil {
+		rw.Write([]byte("Error on convert the param to integer"))
+	}
+
+	db, err := db.Connect()
+
+	if err != nil {
+		rw.Write([]byte("Error on connect to db."))
+	}
+
+	row, err := db.Query("select * from users where id = ?", ID)
+
+	if err != nil {
+		rw.Write([]byte("Error on get the specified user"))
+	}
+	var user user
+	if row.Next() {
+		if err := row.Scan(&user.ID, &user.Name, &user.Email); err != nil {
+			rw.Write([]byte("Error on scan the user"))
+			return
+		}
+	}
+	if err := json.NewEncoder(rw).Encode(user); err != nil {
+		rw.Write([]byte("Error on encode user."))
+		return
+	}
 }

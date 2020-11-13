@@ -131,3 +131,81 @@ func ListOneUser(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
+
+// UpdateUser control all the operation for update user info
+func UpdateUser(rw http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+
+	ID, err := strconv.ParseUint(params["id"], 10, 32)
+
+	if err != nil {
+		rw.Write([]byte("Error on get user id."))
+		return
+	}
+
+	bodyRequest, err := ioutil.ReadAll(r.Body)
+
+	if err != nil {
+		rw.Write([]byte("Error on read the body of requisition"))
+		return
+	}
+
+	var user user
+	if err := json.Unmarshal(bodyRequest, &user); err != nil {
+		rw.Write([]byte("Error on parse the body of request"))
+		return
+	}
+
+	db, err := db.Connect()
+	if err != nil {
+		rw.Write([]byte("Error on connect with db."))
+		return
+	}
+	defer db.Close()
+
+	statement, err := db.Prepare("update users set name = ?, email = ? where id = ? ")
+	if err != nil {
+		rw.Write([]byte("Error on create the statement"))
+		return
+	}
+	defer statement.Close()
+
+	if _, err := statement.Exec(user.Name, user.Email, ID); err != nil {
+		rw.Write([]byte("Error on update the user"))
+		return
+	}
+
+	rw.WriteHeader(http.StatusNoContent)
+}
+
+// DeleteUser delete the selected user
+func DeleteUser(rw http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	ID, err := strconv.ParseUint(params["id"], 10, 32)
+
+	if err != nil {
+		rw.Write([]byte("Error on convert the paramter"))
+	}
+
+	db, err := db.Connect()
+	if err != nil {
+		rw.Write([]byte("Error on connect with db."))
+		return
+	}
+	defer db.Close()
+
+	statement, err := db.Prepare("delete from users where id = ?")
+	if err != nil {
+		rw.Write([]byte("Error on create the statement"))
+		return
+	}
+	defer statement.Close()
+
+	if _, err := statement.Exec(ID); err != nil {
+		rw.Write([]byte("Error on execute the statement"))
+		return
+	}
+
+	rw.WriteHeader(http.StatusNoContent)
+
+}
